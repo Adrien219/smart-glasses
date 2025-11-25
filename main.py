@@ -111,7 +111,7 @@ class VoiceAssistant:
         if name.lower() == "inconnu":
             self.speak("Personne inconnue détectée")
         else:
-            self.speak(f"{name} est devant vous")
+            self.speak(f"{name} est devant toi")
 
     def announce_text(self, text):
         if text:

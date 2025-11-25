@@ -1,0 +1,20 @@
+# Computer Vision
+opencv-python==4.8.1.78
+ultralytics==8.0.186
+
+# Deep Learning
+torch==2.0.1
+torchvision==0.15.2
+numpy==1.24.3
+
+# Communication Arduino (optionnel)
+pyserial==3.5
+
+# Audio (pour plus tard)
+gtts==2.3.2
+pygame==2.5.0
+
+# Web (pour plus tard)
+flask==2.3.3
+geopy==2.3.0
+pyttsx3==2.90

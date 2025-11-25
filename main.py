@@ -4,7 +4,7 @@ import sys
 import os
 import numpy as np
 
-# Pour éviter les messages ALSA/Jack sur Raspberry Pi
+# Pour éviter les message ALSA/Jack sur Raspberry Pi
 os.environ["SDL_AUDIODRIVER"] = "dummy"
 os.environ["AUDIODEV"] = "hw:0,0"
 DEVNULL = open(os.devnull, "w")

@@ -3,7 +3,7 @@ import requests
 import threading
 import numpy as np
 
-# Importations conditionnelles pour éviter les erreurs
+# Importations conditionnelles pour éviter les 
 try:
     from core.face_recognizer import FaceRecognizer
     from core.text_recognizer import TextRecognizer
@@ -166,15 +166,69 @@ class CameraProcessor:
         finally:
             cv2.destroyAllWindows()
 
+    def process_rpi_camera_main_thread(self, controller):
+        """Version CAMÉRA dans le THREAD PRINCIPAL - ARRÊT IMMÉDIAT"""
+        print("📷 Caméra RPi - Thread principal...")
+        
+        cap = None
+        try:
+            cap = cv2.VideoCapture(0)
+            if not cap.isOpened():
+                print("❌ Impossible d'ouvrir la caméra RPi")
+                return
+                
+            print("✅ Caméra RPi ouverte - Appuyez sur 'q' pour quitter")
+            
+            while controller.running:
+                ret, frame = cap.read()
+                if not ret:
+                    print("❌ Erreur lecture caméra")
+                    break
+                
+                # Traitement YOLO
+                if hasattr(controller, 'model') and controller.model:
+                    results = controller.model(frame)
+                    annotated_frame = results[0].plot()
+                else:
+                    annotated_frame = frame  # Fallback sans YOLO
+                
+                # Affichage
+                cv2.imshow('Smart Glasses - Appuyez sur Q pour quitter', annotated_frame)
+                
+                # ✅ VÉRIFICATION CONTINUE DE LA TOUCHE 'q'
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
+                    print("🎯 Touche Q pressée - Arrêt demandé")
+                    controller.running = False
+                    break
+                    
+        except Exception as e:
+            print(f"❌ Erreur caméra: {e}")
+        finally:
+            # ✅ FERMETURE GARANTIE
+            if cap:
+                cap.release()
+            cv2.destroyAllWindows()
+            print("✅ Caméra RPi fermée")
+
     def stop(self):
-        """Arrêt propre des caméras"""
-        print("🛑 Arrêt des flux caméra...")
+        """Arrêt IMMÉDIAT et SÉCURISÉ des caméras"""
+        print("🛑 Arrêt urgent des caméras...")
         self.running = False
         
-        if self.cap_esp32:
-            self.cap_esp32.release()
-        if self.cap_rpi:
-            self.cap_rpi.release()
-            
-        cv2.destroyAllWindows()
+        # Fermeture forcée mais sécurisée
+        try:
+            if self.cap_esp32:
+                self.cap_esp32.release()
+            if self.cap_rpi:
+                self.cap_rpi.release()
+        except:
+            pass
+        
+        # Destruction fenêtres
+        try:
+            cv2.destroyAllWindows()
+        except:
+            pass
+        
         print("✅ Caméras arrêtées")

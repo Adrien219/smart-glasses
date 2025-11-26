@@ -1,143 +1,146 @@
 #!/usr/bin/env python3
-# COORDINATEUR PRINCIPAL - Version corrigée
-
 import cv2
 import time
 import threading
+import signal
+import sys
+import os
 from camera_processor import CameraProcessor
 from arduino_communicator import ArduinoCommunicator
 
 class SmartGlassesController:
     def __init__(self):
-        # Essaie différentes IPs possibles pour l'ESP32
-        self.esp32_ip = self.find_esp32_ip()
-        self.arduino_port = None  # Auto-détection
+        self.esp32_ip = "10.231.158.139"
+        self.arduino_port = None
         
-        # Modules
         self.camera_processor = CameraProcessor(self.esp32_ip)
         self.arduino_comm = ArduinoCommunicator(self.arduino_port)
         
         self.current_mode = "navigation"
         self.running = True
+        
+        # Capture du signal Ctrl+C
+        signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
 
-    def find_esp32_ip(self):
-        """Trouve automatiquement l'IP de l'ESP32"""
-        possible_ips = [
-            "10.231.158.139",  # Ton IP précédente
-            "192.168.1.100",
-            "192.168.1.101", 
-            "192.168.0.100",
-            "192.168.0.101"
-        ]
-        
-        for ip in possible_ips:
+    def signal_handler(self, signum, frame):
+        """Handler ULTRA ROBUSTE qui force l'arrêt"""
+        print(f"\n💀 SIGNAL {signum} - ARRÊT FORCÉ IMMÉDIAT!")
+        self.running = False
+        self.emergency_cleanup()
+        os._exit(1)  # 💀 FORCE L'ARRÊT IMMÉDIAT
+
+    def emergency_cleanup(self):
+        """Nettoyage d'urgence - NE PEUT PAS ÉCHOUER"""
+        try:
+            print("🚨 NETTOYAGE D'URGENCE...")
+            self.running = False
+            
+            # 1. Fermer TOUTES les fenêtres OpenCV
             try:
-                import requests
-                response = requests.get(f"http://{ip}/status", timeout=2)
-                if "ESP32" in response.text:
-                    print(f"🎯 ESP32 trouvé à: {ip}")
-                    return ip
+                cv2.destroyAllWindows()
+                # Forcer la fermeture
+                for i in range(5):
+                    cv2.waitKey(1)
             except:
-                continue
-        
-        print("⚠️  ESP32 non trouvé - utilisation de l'IP par défaut")
-        return "10.231.158.139"  # IP par défaut
+                pass
+            
+            # 2. Arrêt Arduino
+            try:
+                if hasattr(self, 'arduino_comm'):
+                    self.arduino_comm.stop()
+            except:
+                pass
+                
+            print("✅ Nettoyage d'urgence terminé")
+            
+        except Exception as e:
+            print(f"⚠️  Erreur nettoyage d'urgence: {e}")
 
     def setup(self):
+        """Initialisation"""
         print("🚀 Initialisation Smart Glasses...")
-        
-        # Initialisation modules
         self.arduino_comm.connect()
         self.camera_processor.setup()
         
+        # Initialisation du modèle YOLO
+        try:
+            from ultralytics import YOLO
+            self.model = YOLO('yolov8n.pt')
+            print("✅ YOLOv8 initialisé avec succès!")
+        except Exception as e:
+            print(f"❌ Erreur initialisation YOLO: {e}")
+            self.model = None
+            
         print("✅ Système prêt")
 
-    def run(self):
-        try:
-            print("🤖 Démarrage des threads...")
-            
-            # Démarrer les threads
-            threads = []
-            
-            # Thread ESP32 seulement si accessible
-            if self.camera_processor.test_esp32_connection():
-                threads.append(threading.Thread(target=self.camera_processor.process_esp32_stream))
-            else:
-                print("⚠️  Thread ESP32 désactivé (connexion impossible)")
-            
-            # Thread RPi camera
-            threads.append(threading.Thread(target=self.camera_processor.process_rpi_camera))
-            
-            # Thread Arduino
-            threads.append(threading.Thread(target=self.arduino_comm.read_loop, 
-                                          args=(self.handle_arduino_message,)))
-            
-            for thread in threads:
-                thread.daemon = True
-                thread.start()
-                print(f"✅ Thread démarré: {thread.name}")
-            
-            # Boucle principale
-            print("🔄 Boucle principale démarrée")
-            while self.running:
-                time.sleep(1)
-                
-        except KeyboardInterrupt:
-            print("\n🛑 Arrêt demandé...")
-            self.cleanup()
-        except Exception as e:
-            print(f"❌ Erreur dans run(): {e}")
-            self.cleanup()
-
     def handle_arduino_message(self, message):
-        """Traite les messages de l'Arduino"""
+        """Traitement des messages Arduino"""
+        if not self.running:
+            return
         print(f"📨 Arduino: {message}")
         
         if message.startswith("BUTTON:"):
-            button_id = int(message.split(":")[1])
-            self.handle_button_press(button_id)
-        elif message.startswith("DISTANCE:") and self.current_mode == "navigation":
-            distance = float(message.split(":")[1])
-            if distance < 50.0:
-                self.arduino_comm.send_command("BUZZER:300,800")
+            button_value = int(message.split(":")[1])
+            self.handle_button_press(button_value)
 
-    def handle_button_press(self, button_id):
+    def handle_button_press(self, button_value):
         """Gestion des boutons"""
-        modes = {
-            1: "object_detection",
-            2: "face_recognition", 
-            3: "text_reading",
-            4: "ai_assistant",
-            5: "navigation"
-        }
+        if not self.running:
+            return
+            
+        modes = ["navigation", "object_detection", "face_recognition", 
+                "text_reading", "ai_assistant"]
         
-        if button_id in modes:
-            self.change_mode(modes[button_id])
+        if 0 <= button_value < len(modes):
+            new_mode = modes[button_value]
+            if new_mode != self.current_mode:
+                print(f"🔄 Mode: {self.current_mode} → {new_mode}")
+                self.current_mode = new_mode
 
-    def change_mode(self, new_mode):
-        """Changement de mode"""
-        print(f"🔄 Mode: {self.current_mode} → {new_mode}")
-        self.current_mode = new_mode
-        
-        # Feedback Arduino
-        colors = {
-            "navigation": "255,0,0",
-            "object_detection": "0,255,0", 
-            "face_recognition": "0,0,255",
-            "text_reading": "255,165,0",
-            "ai_assistant": "128,0,128"
-        }
-        
-        if new_mode in colors:
-            self.arduino_comm.send_command(f"LED:{colors[new_mode]}")
-
-    def cleanup(self):
-        self.running = False
-        self.arduino_comm.disconnect()
-        cv2.destroyAllWindows()
-        print("🧹 Nettoyage terminé")
+    def run(self):
+        """Boucle principale ULTRA SIMPLE"""
+        try:
+            print("🤖 Démarrage système...")
+            
+            # Démarrer UNIQUEMENT le thread Arduino en arrière-plan
+            arduino_thread = threading.Thread(
+                target=self.arduino_comm.read_loop,
+                args=(self.handle_arduino_message,),
+                daemon=True
+            )
+            arduino_thread.start()
+            print("✅ Thread Arduino démarré")
+            
+            # ✅ LA CAMÉRA DANS LE THREAD PRINCIPAL - CRITIQUE !
+            print("📷 Démarrage caméra RPi dans thread principal...")
+            self.camera_processor.process_rpi_camera_main_thread(self)
+            
+        except KeyboardInterrupt:
+            print("\n🛑 Ctrl+C dans run()")
+        except Exception as e:
+            print(f"❌ Erreur run(): {e}")
+        finally:
+            self.emergency_cleanup()
 
 if __name__ == "__main__":
-    controller = SmartGlassesController()
-    controller.setup()
-    controller.run()
+    controller = None
+    try:
+        controller = SmartGlassesController()
+        controller.setup()
+        controller.run()
+    except KeyboardInterrupt:
+        print("\n🎯 Arrêt demandé par Ctrl+C")
+        if controller:
+            controller.emergency_cleanup()
+    except Exception as e:
+        print(f"💥 ERREUR: {e}")
+        if controller:
+            controller.emergency_cleanup()
+    finally:
+        print("🎯 Programme TERMINÉ")
+        # Force la fermeture si bloqué
+        try:
+            sys.exit(0)
+        except:
+            os._exit(0)

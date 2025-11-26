@@ -70,6 +70,27 @@ class FaceRecognizer:
         except Exception as e:
             print(f"❌ Erreur reconnaissance faciale: {e}")
             return []
+        
+    def setup(self):
+        print("👤 Initialisation reconnaissance faciale...")
+        # Charger les visages connus depuis la base de données
+        self.load_known_faces()
+    
+    def load_known_faces(self):
+        """Charge les visages connus depuis le dossier faces/"""
+        # À implémenter selon ta structure
+        pass
+        
+    def detect_faces(self, frame):
+        """Détecte tous les visages dans l'image"""
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        face_locations = face_recognition.face_locations(rgb_frame)
+        return face_locations
+    
+    def recognize_face(self, face_image):
+        """Reconnaît un visage spécifique"""
+        # Implémentation de la reconnaissance
+        return None
 
     def draw_faces(self, frame, faces):
         """Dessiner les visages sur l'image"""

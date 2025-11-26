@@ -1,7 +1,7 @@
 import easyocr
 import cv2
 import numpy as np
-
+import re
 class TextRecognizer:
     def __init__(self):
         self.reader = None
@@ -75,7 +75,41 @@ class TextRecognizer:
         except Exception as e:
             print(f"❌ Erreur dessin texte: {e}")
             return frame
-
+        
+    def setup(self):
+        print("💰 Initialisation reconnaissance billets...")
+        self.reader = easyocr.Reader(['fr', 'en'])
+    
+    def detect_bills(self, frame):
+        """Détecte les billets dans l'image"""
+        results = self.reader.readtext(frame)
+        bills = []
+        
+        for (bbox, text, confidence) in results:
+            amount = self.extract_amount(text)
+            if amount and confidence > 0.6:
+                bills.append({
+                    'amount': amount,
+                    'confidence': confidence,
+                    'position': bbox
+                })
+        
+        return bills
+    
+    def extract_amount(self, text):
+        patterns = [
+            r'(\d+)\s*€',
+            r'EURO\s*(\d+)',
+            r'(\d+)\s*EUROS',
+            r'(\d+)\s*EUR'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, text.upper())
+            if match:
+                return f"{match.group(1)}€"
+        return None
+    
     def announce_text(self, text):
         """Annoncer le texte détecté (méthode pour VoiceAssistant)"""
         return f"Texte détecté: {text}"

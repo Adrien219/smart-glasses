@@ -1,0 +1,47 @@
+Hand Control Module for Smart Glasses.
+
+Install:
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+pip install -r requirements.txt
+
+Run:
+python main.py
+
+If camera doesn't open try changing VideoCapture index (0 -> 1) or backend:
+cap = cv2.VideoCapture(0, cv2.CAP_MSMF)  # alternative on Windows
+On Raspberry Pi use cv2.CAP_V4L2 and ensure camera drivers are enabled.
+
+Tweak thresholds in HandTrackingModule.recognizeGesture for your lighting/camera.
+
+
+
+
+Liste des gestes et description visuelle
+Geste (HandDetector)	Description visuelle	Commande associée	TTS
+FIST	Poing fermé, tous les doigts serrés	lock_system	"Système verrouillé"
+PALM	Main ouverte, doigts tendus et écartés	play_pause	"Lecture ou pause"
+THUMB_UP	Pouce levé, autres doigts repliés	volume_up	"Volume augmenté"
+THUMB_DOWN	Pouce vers le bas, autres doigts repliés	volume_down	"Volume diminué"
+POINT	Index tendu, autres doigts repliés	select	"Sélection effectuée"
+V_SIGN	Index et majeur tendus formant un "V", autres doigts repliés	take_photo	"Photo prise"
+OPEN_HAND	Main ouverte mais plus compacte que PALM, doigts serrés mais visibles	open_menu	"Menu principal"
+HELP_SIGN	Main levée, doigts légèrement pliés ou pouce vers l’intérieur (comme un signe de “aide”)	help	"Aide vocale activée"
+SOS_SIGN	Les doigts forment un signe particulier pour urgence (souvent poing levé ou “V” sur la main)	sos	"Alerte d’urgence"
+STOP_SIGN	Main ouverte, paume vers la caméra comme pour dire “stop”	stop_system	"Arrêt complet du système"
+OBSTACLE_SIGN	Main montrant un geste de “alerte” (ex : index pointé ou poing fermé levé)	announce_obstacle	"Obstacle détecté devant"
+Gestes de swipe (mouvement de la main)
+Swipe	Description	Commande associée	TTS
+left	Main se déplace rapidement de droite vers gauche	previous	"Précédent"
+right	Main se déplace de gauche vers droite	next	"Suivant"
+up	Main monte rapidement	volume_up	"Volume augmenté"
+down	Main descend rapidement	volume_down	"Volume diminué"
+
+💡 Astuce pour la détection fiable :
+
+Garde un bon éclairage et un fond contrasté pour que MediaPipe détecte mieux la main.
+
+Pour les gestes statiques (FIST, PALM, THUMB_UP...), augmente la taille de la fenêtre de smoothing (SMOOTH_N) pour éviter les erreurs.
+
+Pour les gestes de mouvement (swipe), tu peux ajuster la sensibilité du déplacement dans HandDetector.detect_motion() pour éviter les fausses détections.

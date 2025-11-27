@@ -1,0 +1,14 @@
+{
+  "gestures": {
+    "FIST": "lock_system",
+    "PALM": "play_pause",
+    "THUMB_UP": "volume_up",
+    "THUMB_DOWN": "volume_down"
+  },
+  "pinch": {
+    "index": "select",
+    "middle": "take_photo",
+    "ring": "open_menu",
+    "pinky": "help"
+  }
+}

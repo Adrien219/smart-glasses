@@ -34,43 +34,42 @@ class FaceRecognizer:
         print(f"📊 {len(self.known_face_names)} visages connus chargés")
 
     def detect_faces(self, frame):
-        """Détecter et reconnaître les visages"""
         try:
+            # Vérifier que la frame est valide
+            if frame is None or frame.size == 0:
+                return []
+                
             # Convertir BGR to RGB
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            rgb_frame = frame[:, :, ::-1]
             
-            # Détecter tous les visages
+            # Détection des visages
             face_locations = face_recognition.face_locations(rgb_frame)
             face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
             
-            face_info = []
-            
+            faces = []
             for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
-                # Comparer avec les visages connus
+                # CONVERSION CRITIQUE EN INT
+                top, right, bottom, left = int(top), int(right), int(bottom), int(left)
+                
+                # Reconnaissance
+                matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding)
                 name = "Inconnu"
-                if self.known_face_encodings:
-                    matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding)
-                    face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
-                    
-                    if True in matches:
-                        best_match_index = np.argmin(face_distances)
-                        if face_distances[best_match_index] < 0.6:
-                            name = self.known_face_names[best_match_index]
                 
-                face_info.append({
+                if True in matches:
+                    first_match_index = matches.index(True)
+                    name = self.known_face_names[first_match_index]
+                
+                faces.append({
                     'name': name,
-                    'location': (left, top, right, bottom),
-                    'distance': face_distances[best_match_index] if name != "Inconnu" else None
+                    'position': (top, right, bottom, left)
                 })
-                
-                print(f"👤 {name} détecté")
-                
-            return face_info
+            
+            return faces
             
         except Exception as e:
             print(f"❌ Erreur reconnaissance faciale: {e}")
             return []
-        
+            
     def setup(self):
         print("👤 Initialisation reconnaissance faciale...")
         # Charger les visages connus depuis la base de données

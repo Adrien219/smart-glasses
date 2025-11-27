@@ -80,12 +80,33 @@ class FaceRecognizer:
         # À implémenter selon ta structure
         pass
         
+
+
+
+
+
+
+
     def detect_faces(self, frame):
-        """Détecte tous les visages dans l'image"""
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        face_locations = face_recognition.face_locations(rgb_frame)
-        return face_locations
-    
+        try:
+            rgb_frame = frame[:, :, ::-1]
+            face_locations = face_recognition.face_locations(rgb_frame)
+            face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+            
+            faces = []
+            for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+                # CONVERSION CRITIQUE EN INT
+                top, right, bottom, left = int(top), int(right), int(bottom), int(left)
+
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                face_locations = face_recognition.face_locations(rgb_frame)
+                return face_locations
+            
+            return faces
+        except Exception as e:
+            print(f"❌ Erreur reconnaissance faciale: {e}")
+        return []
+            
     def recognize_face(self, face_image):
         """Reconnaît un visage spécifique"""
         # Implémentation de la reconnaissance

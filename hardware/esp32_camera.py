@@ -4,10 +4,9 @@ import numpy as np
 import time
 
 class ESP32Camera:
-    def __init__(self, url):
-        self.url = url
-        self.connected = False
-        self.test_connection()
+    def __init__(self, ip_address):
+        self.ip = ip_address
+        self.stream_url = f"http://{ip_address}/stream"
     
     def test_connection(self):
         """Tester la connexion à l'ESP32-CAM"""

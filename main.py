@@ -144,13 +144,20 @@ class SmartGlassesSystem:
         self.esp32_ip = "10.231.158.139"
 
         try:
-            from hardware.esp32_camera import ESP32Camera
-            self.esp32_cam = ESP32Camera(self.esp32_ip)
-            print("✅ ESP32-CAM initialisée")
+            # Utiliser le module simple (single camera)
+            from hardware.esp32_simple_camera import ESP32SimpleCamera
+            self.esp32_cam = ESP32SimpleCamera(self.esp32_ip)
+            print("✅ ESP32-CAM (single) initialisée")
         except ImportError as e:
-            print(f"⚠️ ESP32 non disponible: {e}")
-            print("🔧 Création mode simulation ESP32...")
-            self.esp32_cam = type('MockESP32', (), {'ip': self.esp32_ip})()
+            print(f"⚠️ ESP32 simple non disponible: {e}")
+            # Fallback vers simulation
+            self.esp32_cam = type('MockESP32', (), {
+                'ip': self.esp32_ip,
+                'is_connected': False,
+                'toggle_flash': lambda: False,
+                'get_frame': lambda: None
+            })()
+            print("🔧 Mode simulation ESP32 activé")
         except Exception as e:
             print(f"⚠️ Erreur initialisation ESP32: {e}")
             self.esp32_cam = None
@@ -362,9 +369,10 @@ class SmartGlassesSystem:
         self.cleanup()
 
     def process_frame(self, frame):
-        """Traiter la frame avec gestion d'erreurs renforcée"""
+        """Traiter la frame avec une seule caméra"""
         try:
             if self.current_mode == "navigation":
+                # Utiliser la caméra principale pour tout
                 detections = self.object_detector.detect_objects(frame)
                 self.navigation_brain.process(detections, frame_width=frame.shape[1])
                 if self.show_detections:
@@ -379,7 +387,7 @@ class SmartGlassesSystem:
                     self.object_detector.draw_detections(frame, detections)
 
             elif self.current_mode == "face":
-                # Utilise la version corrigée
+                # Utiliser la même caméra pour les visages
                 try:
                     faces = self.face_recognizer.detect_faces(frame)
                     for face in faces:
@@ -389,9 +397,10 @@ class SmartGlassesSystem:
                     if self.show_detections:
                         self.face_recognizer.draw_faces(frame, faces)
                 except Exception as e:
-                    print(f"❌ Erreur critique reconnaissance faciale: {e}")
+                    print(f"❌ Erreur reconnaissance faciale: {e}")
 
             elif self.current_mode == "text":
+                # Utiliser la même caméra pour le texte
                 text_info = self.text_recognizer.extract_text(frame)
                 if text_info:
                     confident_texts = [t for t in text_info if t.get('confidence', 0) > 0.6]

@@ -1,53 +1,40 @@
-import cv2
+#!/usr/bin/env python3
+"""
+Test simplifié du module de navigation.
+"""
+import sys
+import os
 import time
 
-print("🧪 TEST SIMPLIFIÉ DU SYSTÈME")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Test caméra
-cap = cv2.VideoCapture(0)
-if not cap.isOpened():
-    print("❌ Caméra inaccessible")
-    exit()
-
-print("✅ Caméra OK - Test en cours...")
+print("Test du module de navigation...")
+print("=" * 60)
 
 try:
-    mode = "navigation"
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-            
-        # Afficher le mode actuel
-        cv2.putText(frame, f"Mode: {mode}", (10, 30), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        cv2.putText(frame, "Q=Quit, 1-5=Changer mode", (10, 70), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-        
-        cv2.imshow("Test Smart Glasses", frame)
-        
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
-        elif key == ord('1'):
-            mode = "navigation"
-            print("🔄 Mode: Navigation")
-        elif key == ord('2'):
-            mode = "object"
-            print("🔄 Mode: Objets")
-        elif key == ord('3'):
-            mode = "face" 
-            print("🔄 Mode: Visages")
-        elif key == ord('4'):
-            mode = "text"
-            print("🔄 Mode: Texte")
-        elif key == ord('5'):
-            mode = "ai"
-            print("🔄 Mode: IA")
-            
-except KeyboardInterrupt:
-    print("🛑 Arrêt manuel")
-finally:
-    cap.release()
-    cv2.destroyAllWindows()
-    print("✅ Test terminé")
+    from core.navigation import NavigationModule
+    
+    print("1. Création de l'instance...")
+    nav = NavigationModule()
+    
+    print("2. Démarrage...")
+    nav.start()
+    
+    print("3. Test pendant 10 secondes...")
+    for i in range(10):
+        state = nav.get_state()
+        if state:
+            print(f"  [{i+1}/10] État: {state.get('module_state', 'N/A')}")
+        else:
+            print(f"  [{i+1}/10] État: None (démarrage en cours)")
+        time.sleep(1)
+    
+    print("4. Arrêt...")
+    nav.stop()
+    
+    print("\n✅ Test réussi!")
+    
+except Exception as e:
+    print(f"\n❌ Erreur: {e}")
+    import traceback
+    traceback.print_exc()

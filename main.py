@@ -35,6 +35,18 @@ except ImportError as e:
             os.makedirs(folder)
             print(f"📁 Dossier créé: {folder}")
 
+# ==================== NOUVEAU: MODULE DE NAVIGATION ====================
+try:
+    from core.navigation import NavigationModule
+    import threading
+    NAVIGATION_MODULE_AVAILABLE = True
+    print("✅ Module de navigation disponible")
+except ImportError as e:
+    print(f"⚠️  Module de navigation non disponible: {e}")
+    NAVIGATION_MODULE_AVAILABLE = False
+    NavigationModule = None
+# ==================== FIN NOUVEAU ====================
+
 # ------------------- VoiceAssistant optimisé -------------------
 import threading
 import queue
@@ -246,14 +258,23 @@ class SmartGlassesSystem:
         # Initialisation Voice Assistant
         self.voice_assistant = VoiceAssistant(arduino_comm=self.arduino_comm)
 
-        # Modules optionnels
+        # ==================== NOUVEAU: MODULE DE NAVIGATION ====================
+        # Initialisation du module de navigation
+        self.navigation_module = None
+        self.navigation_thread = None
+        self.init_navigation_module()
+        # ==================== FIN NOUVEAU ====================
+
+        # Modules optionnels (NavigationBrain devient optionnel)
         try:
             self.navigation_brain = NavigationBrain(
                 voice=self.voice_assistant,
                 arduino_comm=self.arduino_comm
             )
+            print("✅ NavigationBrain initialisé (mode hérité)")
         except:
             self.navigation_brain = None
+            print("⚠️ NavigationBrain non disponible")
 
         try:
             self.ai_assistant = AIAssistant(self.voice_assistant)
@@ -275,7 +296,57 @@ class SmartGlassesSystem:
         if self.arduino_comm and hasattr(self.arduino_comm, 'add_message_callback'):
             self.arduino_comm.add_message_callback(self.handle_arduino_message)
 
+        # Variables pour le monitoring de la navigation
+        self.last_nav_state_display = 0
+        self.nav_state_display_interval = 5.0  # Afficher l'état toutes les 5 secondes
+
         print("✅ Système initialisé avec succès!")
+
+    # ==================== NOUVELLE MÉTHODE: INITIALISATION NAVIGATION ====================
+    def init_navigation_module(self):
+        """Initialise le module de navigation avancé."""
+        if not NAVIGATION_MODULE_AVAILABLE:
+            print("⚠️  Module de navigation non disponible, utilisation de NavigationBrain")
+            return
+        
+        try:
+            print("🧭 Initialisation du module de navigation avancé...")
+            
+            # Chemin vers la configuration
+            config_path = "config/navigation.yaml"
+            
+            # Vérifie si le fichier de config existe
+            if not os.path.exists(config_path):
+                print(f"⚠️  Fichier de configuration {config_path} non trouvé")
+                config_path = None  # Utilisera les valeurs par défaut
+            
+            # Crée l'instance du module
+            self.navigation_module = NavigationModule(config_path)
+            
+            # Définit les callbacks pour les alertes
+            def on_nav_alert(data):
+                """Callback pour les alertes de navigation."""
+                message = data.get('message', '')
+                if message and self.voice_assistant:
+                    print(f"🚨 NAV ALERT: {message}")
+                    self.voice_assistant.speak(message, priority=True)
+            
+            def on_nav_state_change(data):
+                """Callback pour les changements d'état."""
+                old_state = data.get('old_state', 'unknown')
+                new_state = data.get('new_state', 'unknown')
+                print(f"📊 NAV State: {old_state} → {new_state}")
+            
+            # Enregistre les callbacks
+            self.navigation_module.register_callback('on_alert', on_nav_alert)
+            self.navigation_module.register_callback('on_state_change', on_nav_state_change)
+            
+            print("✅ Module de navigation avancé initialisé")
+            
+        except Exception as e:
+            print(f"❌ Erreur initialisation module navigation: {e}")
+            self.navigation_module = None
+    # ==================== FIN NOUVELLE MÉTHODE ====================
 
     def setup_face_recognition(self):
         """Configuration de la reconnaissance faciale avec known_faces"""
@@ -386,7 +457,16 @@ class SmartGlassesSystem:
             elif button_id == "2":
                 self.toggle_esp32_flash()
             elif button_id == "3":
-                self.voice_assistant.speak("Bouton 3")
+                # ==================== NOUVEAU: TEST NAVIGATION ====================
+                if self.navigation_module:
+                    # Force une annonce de test
+                    self.navigation_module.force_announce(
+                        "Test du module de navigation", 
+                        priority='medium'
+                    )
+                else:
+                    self.voice_assistant.speak("Bouton 3")
+                # ==================== FIN NOUVEAU ====================
                 
         except Exception as e:
             print(f"❌ Erreur bouton: {e}")
@@ -462,6 +542,28 @@ class SmartGlassesSystem:
             return
             
         print("🎯 Démarrage du système...")
+        
+        # ==================== NOUVEAU: DÉMARRAGE NAVIGATION ====================
+        # Démarrer le module de navigation si disponible
+        if self.navigation_module:
+            try:
+                # Démarrer dans un thread séparé pour ne pas bloquer
+                self.navigation_thread = threading.Thread(
+                    target=self.navigation_module.start,
+                    daemon=True,
+                    name="NavigationModule"
+                )
+                self.navigation_thread.start()
+                print("✅ Module de navigation démarré")
+                
+                # Message vocal de démarrage
+                time.sleep(1)  # Attendre un peu que le module soit prêt
+                self.voice_assistant.speak("Navigation activée", priority=True)
+                
+            except Exception as e:
+                print(f"❌ Erreur démarrage module navigation: {e}")
+        # ==================== FIN NOUVEAU ====================
+        
         self.running = True
         self.main_loop()
 
@@ -486,6 +588,30 @@ class SmartGlassesSystem:
                     print(f"📊 Statut: Mode={self.current_mode}, FPS={fps:.1f}")
                     frame_count = 0
                     last_log_time = current_time
+
+                               # ==================== NOUVEAU: MONITORING NAVIGATION ====================
+                # Afficher l'état de la navigation périodiquement
+                if self.navigation_module and current_time - self.last_nav_state_display >= self.nav_state_display_interval:
+                    try:
+                        state = self.navigation_module.get_state()
+                        if state and isinstance(state, dict):
+                            # Vérifie que les clés existent
+                            module_state = state.get('module_state', 'unknown')
+                            eoh_snapshot = state.get('eoh_snapshot', {})
+                            telemetry_summary = state.get('telemetry_summary', {})
+                            
+                            min_distance = eoh_snapshot.get('min_distance') if eoh_snapshot else None
+                            uptime = telemetry_summary.get('uptime', 0)
+                            
+                            print(f"🧭 NAV: État={module_state}, "
+                                  f"Distance min={min_distance if min_distance is not None else '---'}cm, "
+                                  f"Uptime={uptime:.1f}s")
+                            self.last_nav_state_display = current_time
+                        else:
+                            print("🧭 NAV: En attente d'initialisation...")
+                    except Exception as e:
+                        print(f"⚠️  Erreur monitoring navigation: {e}")
+                # ==================== FIN NOUVEAU ====================
 
                 # Acquisition frame avec timeout
                 frame_start = time.time()
@@ -523,6 +649,15 @@ class SmartGlassesSystem:
                     elif key == ord('d'):
                         self.show_detections = not self.show_detections
                         print(f"🔍 Détections: {'ON' if self.show_detections else 'OFF'}")
+                    # ==================== NOUVEAU: COMMANDE TEST NAVIGATION ====================
+                    elif key == ord('n'):
+                        # Commande test pour le module de navigation
+                        if self.navigation_module:
+                            self.navigation_module.force_announce(
+                                "Test manuel du module de navigation",
+                                priority='medium'
+                            )
+                    # ==================== FIN NOUVEAU ====================
 
                 # Petite pause pour éviter la surcharge CPU
                 time.sleep(0.01)
@@ -543,6 +678,21 @@ class SmartGlassesSystem:
             cv2.putText(frame, f"Mode: {self.current_mode}", (10, 30), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
             
+            # ==================== NOUVEAU: INFO NAVIGATION ====================
+            # Afficher l'état de la navigation si en mode navigation
+            if self.current_mode == "navigation" and self.navigation_module:
+                try:
+                    nav_state = self.navigation_module.get_state()
+                    if nav_state:
+                        state_text = f"Nav: {nav_state['module_state']}"
+                        if nav_state['eoh_snapshot']['min_distance']:
+                            state_text += f", Dist: {nav_state['eoh_snapshot']['min_distance']}cm"
+                        cv2.putText(frame, state_text, (10, 60), 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+                except:
+                    pass
+            # ==================== FIN NOUVEAU ====================
+            
             # Afficher le statut de la reconnaissance faciale
             if self.current_mode == "face":
                 if self.esp32_cam and self.esp32_cam.is_connected:
@@ -551,10 +701,10 @@ class SmartGlassesSystem:
                     cam_source = "USB"
                 
                 status = f"Reconnaissance: {cam_source} - {'Avancée' if self.face_recognition_enabled else 'Basique'}"
-                cv2.putText(frame, status, (10, 60), 
+                cv2.putText(frame, status, (10, 90 if self.current_mode == "navigation" else 60), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
             
-            cv2.putText(frame, "Q=Quitter, M=Mode, D=Détections", (10, frame.shape[0] - 10), 
+            cv2.putText(frame, "Q=Quitter, M=Mode, D=Détections, N=Test Nav", (10, frame.shape[0] - 10), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
             
             cv2.imshow("Smart Glasses - " + self.current_mode, frame)
@@ -579,13 +729,25 @@ class SmartGlassesSystem:
             print(f"❌ Erreur traitement frame: {e}")
 
     def process_navigation_mode(self, frame):
-        """Mode navigation avec détection d'objets"""
-        if self.object_detector:
+        """Mode navigation avec le nouveau module"""
+        # ==================== NOUVEAU: LOGIQUE NAVIGATION ====================
+        # Utilise le nouveau module de navigation s'il est disponible
+        if self.navigation_module:
+            # Le module de navigation fonctionne en arrière-plan
+            # Il détecte automatiquement les obstacles et émet des alertes
+            
+            # Optionnel: Afficher les détections du détecteur d'objets existant
+            if self.object_detector and self.show_detections:
+                detections = self.object_detector.detect_objects(frame)
+                self.object_detector.draw_detections(frame, detections)
+                
+        # Fallback: Utiliser l'ancien NavigationBrain si le nouveau module n'est pas disponible
+        elif self.object_detector and self.navigation_brain:
             detections = self.object_detector.detect_objects(frame)
-            if self.navigation_brain:
-                self.navigation_brain.process(detections, frame_width=frame.shape[1])
+            self.navigation_brain.process(detections, frame_width=frame.shape[1])
             if self.show_detections:
                 self.object_detector.draw_detections(frame, detections)
+        # ==================== FIN NOUVEAU ====================
 
     def process_object_mode(self, frame):
         """Mode détection d'objets"""
@@ -658,6 +820,18 @@ class SmartGlassesSystem:
         print("🧹 Nettoyage des ressources...")
         self.running = False
         
+        # ==================== NOUVEAU: ARRÊT NAVIGATION ====================
+        # Arrêter le module de navigation proprement
+        if self.navigation_module:
+            try:
+                print("🧭 Arrêt du module de navigation...")
+                self.navigation_module.stop()
+                print("✅ Module de navigation arrêté")
+            except Exception as e:
+                print(f"❌ Erreur arrêt module navigation: {e}")
+        # ==================== FIN NOUVEAU ====================
+        
+        # Arrêter les autres ressources
         if self.camera:
             try:
                 self.camera.release()

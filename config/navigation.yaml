@@ -1,0 +1,112 @@
+# Configuration du module de navigation
+# Version: 1.0.0
+
+camera:
+  # Configuration de la caméra
+  fov_deg: 62.2          # Champ de vision en degrés (Pi Camera v3: 62.2°)
+  width: 1280            # Largeur de l'image
+  height: 720            # Hauteur de l'image
+  fps: 10                # Images par seconde
+  rotation: 0            # Rotation de l'image (0, 90, 180, 270)
+
+ultrasonic:
+  # Configuration du capteur HC-SR04
+  trig_pin: 23           # GPIO pour trigger (BCM numbering)
+  echo_pin: 24           # GPIO pour echo (BCM numbering)
+  sample_rate_hz: 15     # Fréquence d'échantillonnage
+  max_distance_cm: 400   # Distance maximale mesurable
+  timeout_us: 30000      # Timeout en microsecondes
+
+detection:
+  # Configuration de la détection d'objets
+  model_path: 'models/yolov8n.pt'  # Chemin vers le modèle YOLOv8
+  confidence_threshold: 0.5         # Seuil de confiance minimum
+  iou_threshold: 0.3                # Seuil IoU pour NMS
+  classes:                          # Classes COCO à détecter
+    - 0   # person
+    - 1   # bicycle
+    - 2   # car
+    - 3   # motorcycle
+    - 5   # bus
+    - 7   # truck
+    - 56  # chair
+    - 57  # couch
+    - 62  # tv
+    - 67  # cell phone
+  track: true                       # Activer le tracking
+
+fusion:
+  # Configuration de la fusion de données
+  eoh_bins: 13                      # Nombre de bins dans l'histogramme
+  ema_alpha: 0.4                    # Coefficient pour moyenne mobile exponentielle
+  association_window_ms: 150        # Fenêtre temporelle pour l'association
+  max_object_age_s: 2.0             # Âge maximum d'un objet avant suppression
+  min_confidence: 0.3               # Confiance minimum pour considérer une détection
+
+thresholds:
+  # Seuils pour les alertes
+  emergency_dist_cm: 35             # Distance d'urgence (arrêt immédiat)
+  alert_dist_cm: 100                # Distance d'alerte (guidage nécessaire)
+  warning_dist_cm: 200              # Distance d'avertissement
+  persist_ms: 300                   # Temps de persistance pour déclencher une alerte
+  min_vocal_interval_s: 2.5         # Intervalle minimum entre messages vocaux
+  recovery_time_s: 1.5              # Temps avant retour à l'état normal
+
+guidance:
+  # Configuration du guidage
+  clear_path_threshold_cm: 150      # Distance minimale pour un chemin dégagé
+  min_safe_angle_deg: 20            # Angle minimum pour un virage sécuritaire
+  preferred_direction: 'right'      # Direction préférée ('left' ou 'right')
+
+tts:
+  # Configuration TTS (Text-to-Speech)
+  model_name: 'tts_models/fr/mai/tacotron2-DDC'  # Modèle Coqui TTS
+  speaker_wav: null                  # Fichier WAV pour cloner la voix (optionnel)
+  use_cuda: false                    # Utiliser CUDA si disponible
+  cache_dir: 'tts_cache'             # Répertoire pour le cache audio
+  preload_phrases: true              # Précharger les phrases fréquentes
+  keep_audio_files: false            # Garder les fichiers audio après lecture
+
+system:
+  # Configuration système
+  debug_mode: false                  # Mode débogage (plus de logs)
+  log_level: 'INFO'                  # Niveau de log (DEBUG, INFO, WARNING, ERROR)
+  save_telemetry: true               # Sauvegarder la télémetrie
+  telemetry_interval_s: 5            # Intervalle d'enregistrement de la télémetrie
+  max_queue_size: 20                 # Taille maximum des files d'attente
+  health_check_interval_s: 5         # Intervalle de vérification de santé
+
+performance:
+  # Optimisations de performance
+  yolo_device: 'cpu'                 # Device pour YOLO ('cpu' ou 'cuda')
+  yolo_half_precision: false         # Utiliser la précision moitié (FP16)
+  yolo_optimize: true                # Optimiser le modèle YOLO
+  tts_batch_size: 1                  # Taille du batch pour TTS
+  frame_skip: 0                      # Sauter des frames (0 = traiter toutes)
+
+messages:
+  # Messages vocaux (français)
+  emergency: "Attention, obstacle très proche. Arrêtez-vous."
+  alert: "Obstacle détecté. Ralentissez."
+  warning: "Obstacle devant. Prudence."
+  guidance_left: "Déplacez-vous à gauche."
+  guidance_right: "Déplacez-vous à droite."
+  path_clear: "Chemin dégagé. Vous pouvez avancer."
+  system_ready: "Système de navigation prêt."
+  calibration_complete: "Calibration terminée."
+
+calibration:
+  # Paramètres de calibration
+  reference_height_person: 170       # Hauteur de référence pour une personne (cm)
+  reference_height_door: 200         # Hauteur de référence pour une porte (cm)
+  reference_height_chair: 45         # Hauteur de référence pour une chaise (cm)
+  calibration_samples: 10            # Nombre d'échantillons pour calibration
+  auto_calibrate: true               # Calibration automatique au démarrage
+
+# Paramètres avancés (ne pas modifier sans comprendre)
+advanced:
+  eoh_velocity_smoothing: 0.7        # Lissage de la vélocité dans l'EOH
+  decision_hysteresis: 0.1           # Hystérésis pour les décisions
+  guidance_smoothing_window: 3       # Fenêtre de lissage pour le guidage
+  emergency_override: true           # Les alertes d'urgence écrasent les autres
+  max_consecutive_alerts: 3          # Nombre maximum d'alertes consécutives

@@ -1,0 +1,13 @@
+# Navigation module dependencies
+ultralytics>=8.0.0  # YOLOv8
+opencv-python>=4.5.0  # Computer vision
+numpy>=1.20.0  # Numerical operations
+pyyaml>=6.0  # Configuration files
+RPi.GPIO>=0.7.0  # GPIO for Raspberry Pi (HC-SR04)
+# TTS>=0.20.0  # Coqui TTS (à installer séparément)
+# picamera2>=0.3.0  # Pour Raspberry Pi Camera (à installer séparément)
+
+# Pour le développement
+pytest>=7.0.0
+pytest-asyncio>=0.20.0
+pytest-cov>=4.0.0

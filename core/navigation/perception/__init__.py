@@ -1,20 +1,11 @@
 """
-Module de navigation pour smart-glasses.
-Fournit une navigation fiable et réactive pour personnes malvoyantes.
+Package perception - Détection d'objets et OCR
 """
 
-from .navigation_module import NavigationModule, NavigationState
-from .fusion.eoh import EgocentricOccupancyHistogram
-from .decision.priority_engine import PriorityEngine
-from .adapters.camera_adapter import CameraAdapter
-from .adapters.hc_sr04_adapter import UltrasonicAdapter
+# N'IMPORTE PAS NavigationModule ici !
+# Seulement les wrappers de perception
 
-__version__ = "1.0.0"
-__all__ = [
-    'NavigationModule',
-    'NavigationState',
-    'EgocentricOccupancyHistogram',
-    'PriorityEngine',
-    'CameraAdapter',
-    'UltrasonicAdapter'
-]
+from .yolo_wrapper import ObjectDetector
+from .ocr_wrapper import OCRWrapper
+
+__all__ = ['ObjectDetector', 'OCRWrapper']

@@ -1,0 +1,108 @@
+{
+  "last_alert": null,
+  "fps": {
+    "camera": 0,
+    "detection": 0,
+    "fusion": 0
+  },
+  "latency": {
+    "detection": 0,
+    "fusion": 0,
+    "decision": 0.0
+  },
+  "state_history": [
+    {
+      "old_state": "idle",
+      "new_state": "scanning",
+      "timestamp": 1765596045.927964
+    }
+  ],
+  "obstacles_detected": 0,
+  "eoh_snapshot": {
+    "min_distance": null,
+    "closest_bearing": 0.0,
+    "timestamp": 1765596045.9269664,
+    "bins": [
+      {
+        "min_distance": null,
+        "confidence": 0.0,
+        "object_class": null
+      },
+      {
+        "min_distance": null,
+        "confidence": 0.0,
+        "object_class": null
+      },
+      {
+        "min_distance": null,
+        "confidence": 0.0,
+        "object_class": null
+      },
+      {
+        "min_distance": null,
+        "confidence": 0.0,
+        "object_class": null
+      },
+      {
+        "min_distance": null,
+        "confidence": 0.0,
+        "object_class": null
+      },
+      {
+        "min_distance": null,
+        "confidence": 0.0,
+        "object_class": null
+      },
+      {
+        "min_distance": null,
+        "confidence": 0.0,
+        "object_class": null
+      },
+      {
+        "min_distance": null,
+        "confidence": 0.0,
+        "object_class": null
+      },
+      {
+        "min_distance": null,
+        "confidence": 0.0,
+        "object_class": null
+      },
+      {
+        "min_distance": null,
+        "confidence": 0.0,
+        "object_class": null
+      },
+      {
+        "min_distance": null,
+        "confidence": 0.0,
+        "object_class": null
+      },
+      {
+        "min_distance": null,
+        "confidence": 0.0,
+        "object_class": null
+      },
+      {
+        "min_distance": null,
+        "confidence": 0.0,
+        "object_class": null
+      }
+    ]
+  },
+  "state": "idle",
+  "timestamp": 1765596045.9269664,
+  "uptime": 9.146779775619507,
+  "stats": {
+    "start_time": 1765596036.7801867,
+    "frames_processed": 0,
+    "detections_count": 0,
+    "warnings_issued": 0
+  },
+  "queue_sizes": {
+    "frame": 0,
+    "ultra": 0,
+    "fusion": 0,
+    "tts": 0
+  }
+}

@@ -115,3 +115,28 @@ class EgocentricOccupancyHistogram:
             closest_bearing=closest_bearing,
             timestamp=current_time
         )
+
+    def update_ultrasound_only(self, distance: float, angle: float, timestamp: Optional[float] = None):
+        """
+        Met à jour l'histogramme avec une mesure ultrasonique isolée.
+        
+        Args:
+            distance (float): Distance en mètres.
+            angle (float): Angle en degrés (comme bearing).
+            timestamp (float, optional): Timestamp. Par défaut, time.time().
+        """
+        if timestamp is None:
+            timestamp = time.time()
+        
+        # Convertir l'angle en degrés si nécessaire (supposé déjà en degrés)
+        # Si ton angle est en radians, utilise: bearing_deg = np.degrees(angle)
+        bearing_deg = angle
+        
+        self.update(
+            bearing=bearing_deg,
+            distance=distance,
+            confidence=1.0,
+            object_class="ultrasound",
+            timestamp=timestamp
+        )
+        logger.debug(f"EOH mis à jour par ultrason: angle={bearing_deg:.1f}°, distance={distance:.2f}m")
